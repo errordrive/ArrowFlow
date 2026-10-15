@@ -23,6 +23,20 @@ class GameTheme {
     required this.cardColor,
   });
 
+  static const GameTheme classicPorcelain = GameTheme(
+    id: 'classic_porcelain',
+    name: 'Classic Porcelain',
+    backgroundColor: Color(0xFFF8FAFC),
+    boardColor: Color(0xFFFFFFFF),
+    gridLineColor: Color(0xFFCBD5E1),
+    arrowColors: [
+      Color(0xFF1B243B), // Deep Slate Navy as seen in video
+    ],
+    accentColor: Color(0xFF2563EB), // Vibrant Royal Blue
+    textColor: Color(0xFF1E293B),
+    cardColor: Color(0xFFFFFFFF),
+  );
+
   static const GameTheme cyberNeon = GameTheme(
     id: 'cyber_neon',
     name: 'Cyber Neon',
@@ -129,6 +143,7 @@ class GameTheme {
   );
 
   static List<GameTheme> get allThemes => [
+        classicPorcelain,
         cyberNeon,
         midnightSapphire,
         sunsetAmber,

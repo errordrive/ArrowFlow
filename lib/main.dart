@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'models/game_theme.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'services/storage_service.dart';
 
 void main() async {
@@ -11,9 +10,9 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -29,15 +28,18 @@ class ArrowFlowApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ArrowFlow',
+      title: 'Arrow Puzzle',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: GameTheme.cyberNeon.backgroundColor,
-        fontFamily: 'Roboto',
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB),
+          brightness: Brightness.light,
+        ),
       ),
-      home: const HomeScreen(),
+      home: const MainNavigationScreen(),
     );
   }
 }

@@ -21,6 +21,12 @@ class GameController extends ChangeNotifier {
   bool isEraserActive = false;
   String? hintedArrowId;
 
+  bool get isEraserMode => isEraserActive;
+  bool get hasHintActive => hintedArrowId != null;
+  void useHint() => triggerHint();
+  void toggleEraserMode() => toggleEraser();
+  void undo() => useUndo();
+
   final AudioService _audio = AudioService();
   final StorageService _storage = StorageService();
 

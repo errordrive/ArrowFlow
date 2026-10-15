@@ -8,6 +8,9 @@ class AudioService {
   bool soundEnabled = true;
   bool hapticsEnabled = true;
 
+  bool get vibrationEnabled => hapticsEnabled;
+  set vibrationEnabled(bool val) => hapticsEnabled = val;
+
   void playTapSuccess() {
     if (hapticsEnabled) {
       HapticFeedback.lightImpact();

@@ -27,8 +27,9 @@ class ArrowBoard extends StatefulWidget {
   State<ArrowBoard> createState() => _ArrowBoardState();
 }
 
-class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateMixin {
+class _ArrowBoardState extends State<ArrowBoard> with TickerProviderStateMixin {
   late AnimationController _animController;
+  late AnimationController _tutorialController;
 
   @override
   void initState() {
@@ -39,12 +40,16 @@ class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateM
     )..addListener(() {
         setState(() {});
       });
+
+    _tutorialController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
   }
 
   @override
   void didUpdateWidget(ArrowBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If any arrow started exiting, drive animation
     final hasExiting = widget.arrows.any((a) => a.isExiting);
     if (hasExiting && !_animController.isAnimating) {
       _animController.forward(from: 0.0);
@@ -54,6 +59,7 @@ class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateM
   @override
   void dispose() {
     _animController.dispose();
+    _tutorialController.dispose();
     super.dispose();
   }
 
@@ -61,7 +67,7 @@ class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final padding = 16.0;
+        final padding = 20.0;
         final maxW = constraints.maxWidth - padding * 2;
         final maxH = constraints.maxHeight - padding * 2;
 
@@ -69,37 +75,97 @@ class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateM
         final boardW = cellSize * widget.cols;
         final boardH = cellSize * widget.rows;
 
+        // Find tutorial target arrow if tutorial is active
+        Arrow? tutorialArrow;
+        if (widget.isTutorial && widget.arrows.isNotEmpty) {
+          tutorialArrow = widget.arrows.firstWhere(
+            (a) => !a.isExiting,
+            orElse: () => widget.arrows.first,
+          );
+        }
+
         return Center(
-          child: GestureDetector(
-            onTapDown: (details) => _handleTap(details.localPosition, cellSize, boardW, boardH),
-            child: Container(
-              width: boardW,
-              height: boardH,
-              decoration: BoxDecoration(
-                color: widget.theme.boardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: widget.theme.gridLineColor.withOpacity(0.5),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
+          child: SizedBox(
+            width: boardW,
+            height: boardH,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Interactive canvas
+                GestureDetector(
+                  onTapDown: (details) => _handleTap(details.localPosition, cellSize, boardW, boardH),
+                  child: Container(
+                    width: boardW,
+                    height: boardH,
+                    decoration: BoxDecoration(
+                      color: widget.theme.boardColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: CustomPaint(
+                      painter: _BoardPainter(
+                        rows: widget.rows,
+                        cols: widget.cols,
+                        arrows: widget.arrows,
+                        theme: widget.theme,
+                        cellSize: cellSize,
+                        animValue: _animController.value,
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              child: CustomPaint(
-                painter: _BoardPainter(
-                  rows: widget.rows,
-                  cols: widget.cols,
-                  arrows: widget.arrows,
-                  theme: widget.theme,
-                  cellSize: cellSize,
-                  animValue: _animController.value,
                 ),
-              ),
+
+                // Tutorial Hand + "Tap to remove" Tooltip (matching reference video 00:14)
+                if (widget.isTutorial && tutorialArrow != null && !tutorialArrow.isExiting)
+                  Positioned(
+                    left: (tutorialArrow.path.first.col + 0.5) * cellSize - 40,
+                    top: (tutorialArrow.path.first.row + 0.5) * cellSize,
+                    child: AnimatedBuilder(
+                      animation: _tutorialController,
+                      builder: (context, child) {
+                        final bounce = math.sin(_tutorialController.value * math.pi) * 6;
+                        return Transform.translate(
+                          offset: Offset(0, bounce),
+                          child: child,
+                        );
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Pointing finger icon
+                          const Icon(
+                            Icons.touch_app_rounded,
+                            size: 42,
+                            color: Color(0xFF1E293B),
+                          ),
+                          const SizedBox(height: 4),
+                          // Blue tooltip pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withOpacity(0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              'Tap to remove',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -108,14 +174,12 @@ class _ArrowBoardState extends State<ArrowBoard> with SingleTickerProviderStateM
   }
 
   void _handleTap(Offset localPos, double cellSize, double boardW, double boardH) {
-    // Check nearest arrow with expanded 24dp hit radius (PRD 5.7)
     Arrow? bestArrow;
-    double minDistance = 28.0; // Comfort threshold
+    double minDistance = 32.0; // Comfort 32dp tap radius
 
     for (final arrow in widget.arrows) {
       if (arrow.isExiting) continue;
 
-      // Distance to any segment or cell center in arrow path
       for (int i = 0; i < arrow.path.length; i++) {
         final pos = arrow.path[i];
         final center = Offset(
@@ -158,7 +222,7 @@ class _BoardPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _drawGridBackground(canvas, size);
 
-    // Draw normal arrows first, then animating/exiting arrows on top
+    // Draw normal arrows first, then exiting arrows on top
     for (final arrow in arrows.where((a) => !a.isExiting)) {
       _drawArrow(canvas, arrow, size);
     }
@@ -168,33 +232,16 @@ class _BoardPainter extends CustomPainter {
   }
 
   void _drawGridBackground(Canvas canvas, Size size) {
+    // Subtle architectural dot grid (as seen in video 00:18, 00:24, 01:14)
     final dotPaint = Paint()
-      ..color = theme.gridLineColor.withOpacity(0.6)
+      ..color = const Color(0xFFCBD5E1).withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
-    // Draw soft subtle cell background tiles
-    final tilePaint = Paint()
-      ..color = theme.backgroundColor.withOpacity(0.4)
-      ..style = PaintingStyle.fill;
-
-    final inset = cellSize * 0.08;
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
-        final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            c * cellSize + inset,
-            r * cellSize + inset,
-            cellSize - inset * 2,
-            cellSize - inset * 2,
-          ),
-          Radius.circular(cellSize * 0.18),
-        );
-        canvas.drawRRect(rect, tilePaint);
-
-        // Center dot
         canvas.drawCircle(
           Offset((c + 0.5) * cellSize, (r + 0.5) * cellSize),
-          1.5,
+          2.0,
           dotPaint,
         );
       }
@@ -204,35 +251,37 @@ class _BoardPainter extends CustomPainter {
   void _drawArrow(Canvas canvas, Arrow arrow, Size size) {
     canvas.save();
 
-    final baseColor = theme.arrowColors[arrow.colorIndex % theme.arrowColors.length];
-    Color renderColor = baseColor;
+    Color renderColor = theme.arrowColors.first;
 
-    // Handle Blocked shake & red flash
-    if (arrow.isBlocked) {
-      final shakeOffset = math.sin(animValue * math.pi * 8) * 6.0;
-      canvas.translate(shakeOffset, 0);
-      renderColor = const Color(0xFFFF2A4B); // Glowing Red
-    }
-
-    // Handle Exiting slide-off animation
+    // 1. Tapped and FREE: Arrow turns bright electric blue as it exits! (00:17 & 00:26 in video)
     if (arrow.isExiting) {
-      // Ease-in acceleration
+      renderColor = const Color(0xFF2563EB); // Royal Blue
+
       final t = Curves.easeInQuad.transform(animValue);
-      final exitDist = cellSize * (math.max(rows, cols) + 3) * t;
+      final exitDist = cellSize * (math.max(rows, cols) + 4) * t;
       final dir = arrow.direction;
       canvas.translate(dir.dx * exitDist, dir.dy * exitDist);
 
-      // Fade out near end of animation
       final alpha = (1.0 - t).clamp(0.0, 1.0);
       renderColor = renderColor.withOpacity(alpha);
     }
 
-    // Handle Hint Pulsing Glow
+    // 2. Tapped and BLOCKED: Arrow turns RED, shakes, and projects guide ray (01:15 & 01:18 in video)
+    if (arrow.isBlocked) {
+      final shakeOffset = math.sin(animValue * math.pi * 8) * 5.0;
+      canvas.translate(shakeOffset, 0);
+      renderColor = const Color(0xFFEF4444); // Bright Red
+
+      // Draw subtle ray projection along blocked exit path
+      _drawExitGuideRay(canvas, arrow);
+    }
+
+    // 3. Hint Pulsing Glow (Lightbulb powerup)
     if (arrow.isHinted) {
       final glowPaint = Paint()
-        ..color = const Color(0xFF00F0FF).withOpacity(0.4)
+        ..color = const Color(0xFF00F0FF).withOpacity(0.5)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = cellSize * 0.42
+        ..strokeWidth = cellSize * 0.4
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
@@ -240,10 +289,9 @@ class _BoardPainter extends CustomPainter {
       _drawArrowPath(canvas, arrow, glowPaint);
     }
 
-    // Stroke width tailored to cell size
-    final strokeWidth = cellSize * 0.22;
+    final strokeWidth = cellSize * 0.18;
 
-    // 1. Arrow Body
+    // Arrow Body
     final bodyPaint = Paint()
       ..color = renderColor
       ..style = PaintingStyle.stroke
@@ -253,10 +301,27 @@ class _BoardPainter extends CustomPainter {
 
     _drawArrowPath(canvas, arrow, bodyPaint);
 
-    // 2. Arrowhead
+    // Arrow Head
     _drawArrowHead(canvas, arrow, renderColor, strokeWidth);
 
     canvas.restore();
+  }
+
+  void _drawExitGuideRay(Canvas canvas, Arrow arrow) {
+    final head = _cellCenter(arrow.head);
+    final dir = arrow.direction;
+
+    final rayPaint = Paint()
+      ..color = const Color(0xFF93C5FD).withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final end = Offset(
+      head.dx + dir.dx * cellSize * (math.max(rows, cols)),
+      head.dy + dir.dy * cellSize * (math.max(rows, cols)),
+    );
+
+    canvas.drawLine(head, end, rayPaint);
   }
 
   void _drawArrowPath(Canvas canvas, Arrow arrow, Paint paint) {
@@ -278,18 +343,16 @@ class _BoardPainter extends CustomPainter {
     final headPos = _cellCenter(arrow.head);
     final dir = arrow.direction;
 
-    // Arrowhead size
-    final headSize = cellSize * 0.38;
+    final headSize = cellSize * 0.36;
 
     canvas.save();
     canvas.translate(headPos.dx, headPos.dy);
     canvas.rotate(dir.angleRadians);
 
     final headPath = Path();
-    // Modern stylized arrowhead pointing right (angle 0)
     final tipX = headSize * 0.55;
     final backX = -headSize * 0.45;
-    final wingY = headSize * 0.5;
+    final wingY = headSize * 0.48;
 
     headPath.moveTo(tipX, 0);
     headPath.lineTo(backX, -wingY);
@@ -302,15 +365,6 @@ class _BoardPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(headPath, headPaint);
-
-    // Subtle arrowhead outline for crispness
-    final headOutlinePaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(headPath, headOutlinePaint);
 
     canvas.restore();
   }

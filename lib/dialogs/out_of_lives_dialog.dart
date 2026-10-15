@@ -24,183 +24,141 @@ class OutOfLivesDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         decoration: BoxDecoration(
-          color: theme.boardColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.4), width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.redAccent.withOpacity(0.2),
-              blurRadius: 28,
-              spreadRadius: 2,
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Broken Heart Icon
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.heart_broken_rounded,
-                size: 48,
-                color: Color(0xFFFF2A4B),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            Text(
+            // Title: "Out of Lives!"
+            const Text(
               'Out of Lives!',
               style: TextStyle(
-                color: theme.textColor,
+                color: Color(0xFF1E293B),
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 28),
 
-            Text(
-              'Choose how to continue this level:',
-              style: TextStyle(
-                color: theme.textColor.withOpacity(0.7),
-                fontSize: 14,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 1. Extra Heart (if owned)
-            if (storage.extraHearts > 0) ...[
-              _ActionTile(
-                theme: theme,
-                icon: Icons.favorite,
-                iconColor: const Color(0xFFFF2A4B),
-                title: 'Use Extra Heart',
-                subtitle: 'Owned: ${storage.extraHearts}',
-                onTap: onUseExtraHeart,
-              ),
-              const SizedBox(height: 10),
-            ],
-
-            // 2. Watch Ad for +1 Heart
-            _ActionTile(
-              theme: theme,
-              icon: Icons.play_circle_filled_rounded,
-              iconColor: const Color(0xFF00F0FF),
-              title: 'Watch Ad (+1 Heart)',
-              subtitle: 'Free revive',
-              onTap: onWatchAd,
-            ),
-
-            const SizedBox(height: 10),
-
-            // 3. Spend 75 Coins
-            _ActionTile(
-              theme: theme,
-              icon: Icons.monetization_on,
-              iconColor: const Color(0xFFFFB800),
-              title: 'Spend 75 Coins',
-              subtitle: 'Your balance: ${storage.coins}',
-              enabled: storage.coins >= 75,
-              onTap: onSpendCoins,
-            ),
-
-            const SizedBox(height: 10),
-
-            // 4. Restart Level
-            _ActionTile(
-              theme: theme,
-              icon: Icons.refresh_rounded,
-              iconColor: theme.textColor.withOpacity(0.7),
-              title: 'Restart Level',
-              subtitle: 'Reset board with 3 hearts',
-              onTap: onRestart,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  final GameTheme theme;
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _ActionTile({
-    required this.theme,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    this.enabled = true,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(enabled ? 1.0 : 0.4),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.gridLineColor,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: enabled ? iconColor : Colors.grey, size: 28),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
+            // Big Circular Heart Badge with "+1" (matching video 01:21)
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.favorite_rounded,
+                      size: 54,
+                      color: Color(0xFFEF4444),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: -6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Text(
+                      '+1',
                       style: TextStyle(
-                        color: enabled ? theme.textColor : Colors.grey,
-                        fontSize: 15,
+                        color: Colors.white,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+
+            // Extra Heart button if available
+            if (storage.extraHearts > 0) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: onUseExtraHeart,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                  ),
+                  child: Text('Use Extra Heart (${storage.extraHearts} left)', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Primary Blue Button: "Get More Lives 🎬" (as in video 01:21)
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: onWatchAd,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
                     Text(
-                      subtitle,
+                      'Get More Lives',
                       style: TextStyle(
-                        color: theme.textColor.withOpacity(enabled ? 0.6 : 0.3),
-                        fontSize: 12,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    SizedBox(width: 8),
+                    Icon(Icons.smart_display_rounded, size: 20),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: theme.textColor.withOpacity(0.4),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Secondary: "Restart Game" text button (as in video 01:21)
+            TextButton(
+              onPressed: onRestart,
+              child: const Text(
+                'Restart Game',
+                style: TextStyle(
+                  color: Color(0xFF2563EB),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

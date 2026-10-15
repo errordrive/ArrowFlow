@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/game_theme.dart';
-import '../services/storage_service.dart';
 
 class GameHeader extends StatelessWidget {
   final int levelNumber;
@@ -26,158 +25,89 @@ class GameHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storage = StorageService();
-
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
         child: Column(
           children: [
-            // Top Row: Back, Level Title, Settings
+            // Row 1: Back Button, "Level X", Settings Gear (as seen in video 00:23, 01:09)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
                   onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                  color: theme.textColor.withOpacity(0.8),
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.cardColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+                  color: const Color(0xFF2563EB),
+                ),
+                Text(
+                  'Level $levelNumber',
+                  style: const TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                IconButton(
+                  onPressed: onSettings,
+                  icon: const Icon(Icons.settings_outlined, size: 24),
+                  color: const Color(0xFF2563EB),
+                ),
+              ],
+            ),
 
-                // Level & Difficulty Badge
-                Column(
+            const SizedBox(height: 8),
+
+            // Row 2: Status Bar (🚀 Count, ❤️❤️❤️ Hearts, "Normal" badge) (video 00:24)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Rocket Icon + Remaining count
+                Row(
                   children: [
+                    const Icon(Icons.rocket_launch_rounded, size: 18, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
                     Text(
-                      'Level $levelNumber',
-                      style: TextStyle(
-                        color: theme.textColor,
-                        fontSize: 22,
+                      '$remainingArrows',
+                      style: const TextStyle(
+                        color: Color(0xFF1E293B),
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.accentColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.accentColor.withOpacity(0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        difficultyLabel.toUpperCase(),
-                        style: TextStyle(
-                          color: theme.accentColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                        ),
                       ),
                     ),
                   ],
                 ),
 
-                IconButton(
-                  onPressed: onSettings,
-                  icon: const Icon(Icons.settings, size: 20),
-                  color: theme.textColor.withOpacity(0.8),
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.cardColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Secondary Row: Hearts, Arrows remaining, Coins
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Hearts
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.redAccent.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(maxHearts, (index) {
-                      final isFilled = index < hearts;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                        child: Icon(
-                          isFilled ? Icons.favorite : Icons.favorite_border,
-                          size: 18,
-                          color: isFilled ? const Color(0xFFFF2A4B) : theme.textColor.withOpacity(0.3),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-
-                // Remaining Arrows Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.navigation, size: 14, color: theme.accentColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$remainingArrows left',
-                        style: TextStyle(
-                          color: theme.textColor.withOpacity(0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                // 3 Hearts in Center
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(maxHearts, (index) {
+                    final isFilled = index < hearts;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                      child: Icon(
+                        isFilled ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        size: 26,
+                        color: isFilled ? const Color(0xFFEF4444) : const Color(0xFFCBD5E1),
                       ),
-                    ],
-                  ),
+                    );
+                  }),
                 ),
 
-                // Coins Pill
+                // Difficulty Pill Badge (e.g. "Normal" in video)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFFFB800).withOpacity(0.3),
-                      width: 1,
-                    ),
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.monetization_on, size: 16, color: Color(0xFFFFB800)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${storage.coins}',
-                        style: TextStyle(
-                          color: theme.textColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    difficultyLabel,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

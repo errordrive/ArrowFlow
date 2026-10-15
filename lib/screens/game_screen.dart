@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../dialogs/achievements_dialog.dart';
 import '../dialogs/level_complete_dialog.dart';
 import '../dialogs/out_of_lives_dialog.dart';
 import '../dialogs/shop_dialog.dart';
@@ -7,7 +8,6 @@ import '../models/game_theme.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/arrow_board.dart';
-import '../widgets/confetti_overlay.dart';
 import '../widgets/game_header.dart';
 import '../widgets/powerup_bar.dart';
 
@@ -33,6 +33,7 @@ class _GameScreenState extends State<GameScreen> {
 
   bool _isOutOfLivesDialogOpen = false;
   bool _isWinDialogOpen = false;
+  bool _showImpressiveToast = false;
 
   @override
   void initState() {
@@ -90,8 +91,18 @@ class _GameScreenState extends State<GameScreen> {
 
     if (_controller.isLevelWon && !_isWinDialogOpen) {
       _isWinDialogOpen = true;
-      Future.delayed(const Duration(milliseconds: 600), () {
+
+      // Show "Impressive!" toast (matching video 00:28)
+      setState(() {
+        _showImpressiveToast = true;
+      });
+
+      Future.delayed(const Duration(milliseconds: 900), () {
         if (!mounted) return;
+        setState(() {
+          _showImpressiveToast = false;
+        });
+
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -119,82 +130,180 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _showSettings() {
+  // Options Sheet (Matching video 01:30)
+  void _showOptionsSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Options',
+                      style: TextStyle(
+                        color: Color(0xFF1E293B),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildOptionTile(
+                  icon: Icons.settings_rounded,
+                  iconColor: const Color(0xFF2563EB),
+                  title: 'Settings',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showSettingsSubSheet();
+                  },
+                ),
+                _buildOptionTile(
+                  icon: Icons.help_outline_rounded,
+                  iconColor: const Color(0xFF22C55E),
+                  title: 'Help',
+                  onTap: () => _showDialog('Help', 'Tap free arrows to guide them safely off the board! Avoid hitting blocked arrows.'),
+                ),
+                _buildOptionTile(
+                  icon: Icons.info_outline_rounded,
+                  iconColor: const Color(0xFF64748B),
+                  title: 'About Game',
+                  onTap: () => _showDialog('About Game', 'ArrowFlow v1.0.0\nPure Flutter logic puzzle game.'),
+                ),
+                _buildOptionTile(
+                  icon: Icons.description_outlined,
+                  iconColor: const Color(0xFF9333EA),
+                  title: 'Privacy Rights',
+                  onTap: () => _showDialog('Privacy Rights', 'We respect your data and privacy rights.'),
+                ),
+                _buildOptionTile(
+                  icon: Icons.shield_outlined,
+                  iconColor: const Color(0xFF0891B2),
+                  title: 'Privacy Preferences',
+                  onTap: () => _showDialog('Privacy Preferences', 'Manage personalized preferences.'),
+                ),
+                _buildOptionTile(
+                  icon: Icons.block_rounded,
+                  iconColor: const Color(0xFFDC2626),
+                  title: 'Remove Ads',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showDialog(
+                      context: context,
+                      builder: (_) => ShopDialog(theme: _currentTheme, onUpdated: () => setState(() {})),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: iconColor),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+    );
+  }
+
+  void _showSettingsSubSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: _currentTheme.boardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border.all(color: _currentTheme.gridLineColor),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Settings',
-                    style: TextStyle(
-                      color: _currentTheme.textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SwitchListTile(
-                    title: Text('Sound Effects', style: TextStyle(color: _currentTheme.textColor)),
-                    value: _audio.soundEnabled,
-                    activeColor: _currentTheme.accentColor,
-                    onChanged: (val) {
-                      setModalState(() {
-                        _audio.soundEnabled = val;
-                      });
-                      setState(() {});
-                    },
-                  ),
-                  SwitchListTile(
-                    title: Text('Haptic Vibration', style: TextStyle(color: _currentTheme.textColor)),
-                    value: _audio.hapticsEnabled,
-                    activeColor: _currentTheme.accentColor,
-                    onChanged: (val) {
-                      setModalState(() {
-                        _audio.hapticsEnabled = val;
-                      });
-                      setState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      showDialog(
-                        context: context,
-                        builder: (_) => ShopDialog(
-                          theme: _currentTheme,
-                          onUpdated: () => setState(() {}),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _currentTheme.cardColor,
-                      foregroundColor: _currentTheme.textColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          builder: (context, setSubState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.storefront_rounded, color: Color(0xFFFFB800)),
-                        SizedBox(width: 8),
-                        Text('Open Shop'),
+                        const Text(
+                          'Settings',
+                          style: TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                        ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: const Text('Sounds', style: TextStyle(fontWeight: FontWeight.w600)),
+                      value: _audio.soundEnabled,
+                      activeColor: const Color(0xFF2563EB),
+                      onChanged: (val) {
+                        setSubState(() => _audio.soundEnabled = val);
+                        setState(() {});
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('Vibration', style: TextStyle(fontWeight: FontWeight.w600)),
+                      value: _audio.vibrationEnabled,
+                      activeColor: const Color(0xFF2563EB),
+                      onChanged: (val) {
+                        setSubState(() => _audio.vibrationEnabled = val);
+                        setState(() {});
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('Auto-Lock', style: TextStyle(fontWeight: FontWeight.w600)),
+                      value: false,
+                      activeColor: const Color(0xFF2563EB),
+                      onChanged: (val) {},
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -203,15 +312,31 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _showDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _currentTheme.backgroundColor,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Main Column layout
           Column(
             children: [
+              // Game Header with Back, Level, Settings, Rocket Count, Hearts, Difficulty
               GameHeader(
                 levelNumber: _controller.level.levelNumber,
                 difficultyLabel: _controller.level.difficultyLabel,
@@ -220,80 +345,88 @@ class _GameScreenState extends State<GameScreen> {
                 remainingArrows: _controller.activeArrows.length,
                 theme: _currentTheme,
                 onBack: () => Navigator.pop(context),
-                onSettings: _showSettings,
+                onSettings: _showOptionsSheet,
               ),
 
-              // Board Area
+              // Board Canvas
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      ArrowBoard(
-                        rows: _controller.level.rows,
-                        cols: _controller.level.cols,
-                        arrows: _controller.activeArrows,
-                        theme: _currentTheme,
-                        onArrowTapped: (arrow) {
-                          _controller.tapArrow(arrow);
-                        },
-                      ),
-
-                      // Tutorial tip on Level 1
-                      if (_controller.level.levelNumber == 1 && _controller.activeArrows.length == 3)
-                        Positioned(
-                          top: 24,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: _currentTheme.accentColor.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _currentTheme.accentColor.withOpacity(0.4),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.touch_app_rounded, color: Colors.black, size: 18),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Tap the free arrow to slide it off!',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
+                  child: ArrowBoard(
+                    rows: _controller.level.rows,
+                    cols: _controller.level.cols,
+                    arrows: _controller.activeArrows,
+                    theme: _currentTheme,
+                    isTutorial: _controller.level.levelNumber == 1,
+                    onArrowTapped: (arrow) {
+                      _controller.tapArrow(arrow);
+                    },
                   ),
                 ),
               ),
 
-              // Bottom Powerup Bar
+              // Bottom Floating Power-Ups: Hint & Eraser (matching video 00:24 & 01:10)
               PowerupBar(
                 theme: _currentTheme,
-                isEraserActive: _controller.isEraserActive,
-                hasHintActive: _controller.hintedArrowId != null,
-                onHint: () => _controller.triggerHint(),
-                onEraser: () => _controller.toggleEraser(),
-                onUndo: () => _controller.useUndo(),
-                onRestart: () => _controller.restartLevel(),
+                isEraserActive: _controller.isEraserMode,
+                hasHintActive: _controller.hasHintActive,
+                onHint: () {
+                  _controller.useHint();
+                  setState(() {});
+                },
+                onEraser: () {
+                  _controller.toggleEraserMode();
+                  setState(() {});
+                },
+                onUndo: () {
+                  _controller.undo();
+                  setState(() {});
+                },
+                onRestart: () {
+                  _controller.restartLevel();
+                  setState(() {});
+                },
               ),
             ],
           ),
 
-          // Confetti Celebration
-          if (_controller.isLevelWon)
-            const ConfettiOverlay(),
+          // "Impressive!" Praise Toast (matching video 00:28)
+          if (_showImpressiveToast)
+            Center(
+              child: AnimatedOpacity(
+                opacity: _showImpressiveToast ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text('😊', style: TextStyle(fontSize: 26)),
+                      SizedBox(width: 10),
+                      Text(
+                        'Impressive!',
+                        style: TextStyle(
+                          color: Color(0xFF1E293B),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
